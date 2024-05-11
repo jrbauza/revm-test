@@ -9,17 +9,23 @@ use revm::{
 use std::sync::Arc;
 use alloy_sol_types::{sol, SolCall, SolValue};
 
-
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let mut db = get_db();
+    let usdc_eth_pair = address!("88e6a0c2ddd26feeb64f039a2c41296fcb3f5640");
+    let alien_worlds = address!("888888848B652B3E3a0f34c96E00EEC0F3a23F72");
+    let usdc = address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48");
 
-    let account: Address = address!("0000000000000000000000000000000000000000");//address!("f39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
+    let account = address!("0000000000000000000000000000000000000000");//address!("f39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
     //let _ = get_balance(&mut db, account).await;
-    let token = ERC20Token::new(address!("888888848B652B3E3a0f34c96E00EEC0F3a23F72"));
+    let token = ERC20Token::new(alien_worlds);
+
+    let pool = UniswapV2TokenPool::new(usdc_eth_pair);
+
+    let token_0 = pool.token_0(&mut db)?;
 
     println!("Account balance: {:#?}", token.balance_of(account, &mut db)?.to_string());
+    println!("Token 0: {:#?}", token_0.to_string());
     Ok(())
 
 }
@@ -46,6 +52,73 @@ async fn get_balance(db: &mut CacheDB<EthersDB<Provider<Http>>>, account: Addres
     //println!("Account storage: {:#?}", account_info.unwrap());
     println!("Account balance: {:#?}", account_info.unwrap().balance.to_string());
     Ok(())
+}
+
+
+pub struct UniswapV2TokenPool {
+    address: Address
+}
+
+impl UniswapV2TokenPool {
+    pub fn new(address: Address) -> Self {
+        Self {
+            address
+        }
+    }
+    
+    pub fn token_0(&self, db: &mut CacheDB<EthersDB<Provider<Http>>>) -> anyhow::Result<Address> {
+        sol! {
+            function token0() external view returns (address);
+        }
+
+        let encoded = token0Call {}.abi_encode();
+
+        let mut evm = Evm::builder()
+            .with_db(db)
+            .modify_tx_env(|tx| {
+                tx.caller = address!("0000000000000000000000000000000000000000");
+                tx.transact_to = TransactTo::Call(self.address);
+                tx.data = encoded.into();
+                tx.value = U256::from(0);
+            })
+            .build();
+        let ref_tx = evm.transact_commit().unwrap();
+        let token_0: Address = match ref_tx {
+            ExecutionResult::Success {
+                output: Output::Call(value),
+                ..
+            } => <Address>::abi_decode(&value, false)?,
+            result => return Err(anyhow!("'token0' execution failed: {result:?}")),
+        };
+        Ok(token_0)
+    }
+
+    pub fn token_1(&self, db: &mut CacheDB<EthersDB<Provider<Http>>>) -> anyhow::Result<Address> {
+        sol! {
+            function token1() external view returns (address);
+        }
+
+        let encoded = token1Call {}.abi_encode();
+
+        let mut evm = Evm::builder()
+            .with_db(db)
+            .modify_tx_env(|tx| {
+                tx.caller = address!("0000000000000000000000000000000000000000");
+                tx.transact_to = TransactTo::Call(self.address);
+                tx.data = encoded.into();
+                tx.value = U256::from(0);
+            })
+            .build();
+        let ref_tx = evm.transact_commit().unwrap();
+        let token_1: Address = match ref_tx {
+            ExecutionResult::Success {
+                output: Output::Call(value),
+                ..
+            } => <Address>::abi_decode(&value, false)?,
+            result => return Err(anyhow!("'token1' execution failed: {result:?}")),
+        };
+        Ok(token_1)
+    }
 }
 
 pub struct ERC20Token {
