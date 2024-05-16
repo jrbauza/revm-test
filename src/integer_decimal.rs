@@ -1,3 +1,5 @@
+use std::usize;
+
 use revm::primitives::U256;
 
 pub struct IntegerDecimal {
@@ -13,17 +15,18 @@ impl IntegerDecimal {
         }
     }
 
-    pub fn integer(&self) -> U256 {
-        self.number.checked_div(U256::from(10).checked_pow(self.decimals).unwrap()).unwrap()
+    pub fn integer(&self) -> String {
+        self.number.checked_div(U256::from(10).checked_pow(self.decimals).unwrap()).unwrap().to_string()
     }
 
-    pub fn decimal(&self) -> U256 {
+    pub fn decimal(&self) -> String {
         if self.decimals == U256::from(0) {
-            return U256::from(0);
-            
+            return 0.to_string();
         }
         let divisor = U256::from(10).checked_pow(self.decimals).unwrap();
-        self.number.checked_rem(divisor).unwrap()
+        let decimal_numbers = self.number.checked_rem(divisor).unwrap().to_string();
+        let zeros = "0".repeat(self.decimals.to_string().parse::<usize>().unwrap() - decimal_numbers.len());
+        format!("{}{}", zeros, decimal_numbers)
     }
 
     pub fn divide(&self, divisor: &IntegerDecimal) -> f64 {
@@ -50,18 +53,18 @@ mod tests {
             number: revm::primitives::U256::from(123456),
             decimals: revm::primitives::U256::from(3)
         };
-        assert_eq!(integer_decimal.integer(), revm::primitives::U256::from(123));
+        assert_eq!(integer_decimal.integer(), 123.to_string());
         let zero_decimals = IntegerDecimal {
             number: revm::primitives::U256::from(123456),
             decimals: revm::primitives::U256::from(0)
         };
-        assert_eq!(zero_decimals.integer(), revm::primitives::U256::from(123456));
+        assert_eq!(zero_decimals.integer(), 123456.to_string());
 
         let zero_integer = IntegerDecimal {
             number: revm::primitives::U256::from(123),
             decimals: revm::primitives::U256::from(3)
         };
-        assert_eq!(zero_integer.integer(), revm::primitives::U256::from(0));
+        assert_eq!(zero_integer.integer(), 0.to_string());
     }
 
     #[test]
@@ -70,7 +73,7 @@ mod tests {
             number: revm::primitives::U256::from(123456),
             decimals: revm::primitives::U256::from(3)
         };
-        assert_eq!(integer_decimal.decimal(), revm::primitives::U256::from(456));
+        assert_eq!(integer_decimal.decimal(), 456.to_string());
 
 
         let zero_decimals = IntegerDecimal {
@@ -78,21 +81,21 @@ mod tests {
             decimals: revm::primitives::U256::from(0)
         };
 
-        assert_eq!(zero_decimals.decimal(), revm::primitives::U256::from(0));
+        assert_eq!(zero_decimals.decimal(), 0.to_string());
 
         let zero_integer = IntegerDecimal {
             number: revm::primitives::U256::from(123),
             decimals: revm::primitives::U256::from(3)
         };
 
-        assert_eq!(zero_integer.decimal(), revm::primitives::U256::from(123));
+        assert_eq!(zero_integer.decimal(), 123.to_string());
         
         let zero_integer = IntegerDecimal {
             number: revm::primitives::U256::from(123),
             decimals: revm::primitives::U256::from(4)
         };
 
-        assert_eq!(zero_integer.decimal(), revm::primitives::U256::from(123));
+        assert_eq!(zero_integer.decimal(), "0123".to_string());
     }
 
     #[test]
@@ -121,5 +124,14 @@ mod tests {
         };
         let two_divided_by_one = two_integer.divide(&one_integer);
         assert_eq!(two_divided_by_one, 2.0);
+    }
+
+    #[test]
+    fn test_to_string() {
+        let integer_decimal = IntegerDecimal {
+            number: revm::primitives::U256::from(123056),
+            decimals: revm::primitives::U256::from(3)
+        };
+        assert_eq!(integer_decimal.to_string(), "123.056");
     }
 }
