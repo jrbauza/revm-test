@@ -7,6 +7,10 @@ use revm::{
 use alloy_sol_types::{sol, SolCall, SolValue};
 use anyhow::{Ok, anyhow};
 
+use crate::integer_decimal::IntegerDecimal;
+use crate::erc20_token::ERC20Token;
+
+
 pub struct UniswapV2TokenPool {
     address: Address
 }
@@ -97,5 +101,26 @@ impl UniswapV2TokenPool {
             result => return Err(anyhow!("'getReserves' execution failed: {result:?}")),
         };
         Ok((reserve0, reserve1, timestamp))
+    }
+
+    pub fn token_0_amount(&self, db: &mut CacheDB<EthersDB<Provider<Http>>>) -> IntegerDecimal {
+        let reserves = self.get_reserves(db).unwrap();
+        IntegerDecimal::new(reserves.0, ERC20Token::new(self.token_0(db).unwrap()).decimals(db).unwrap())
+    }
+
+    pub fn token_1_amount(&self, db: &mut CacheDB<EthersDB<Provider<Http>>>) -> IntegerDecimal {
+        let reserves = self.get_reserves(db).unwrap();
+        IntegerDecimal::new(reserves.1, ERC20Token::new(self.token_1(db).unwrap()).decimals(db).unwrap())
+    }
+
+    pub fn ratio(&self, inverse:bool, db: &mut CacheDB<EthersDB<Provider<Http>>>) -> f64 {
+        let token0_amount = self.token_0_amount(db);
+        let token1_amount = self.token_1_amount(db);
+
+        if inverse {
+            token1_amount.divide(&token0_amount)
+        } else {
+            token0_amount.divide(&token1_amount)
+        }
     }
 }

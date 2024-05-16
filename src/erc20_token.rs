@@ -9,8 +9,6 @@ use revm::{
 use alloy_sol_types::{sol, SolCall, SolValue};
 use anyhow::{Ok, anyhow};
 
-use crate::integer_decimal::IntegerDecimal;
-
 pub struct ERC20Token {
     address : Address
 }
@@ -77,10 +75,6 @@ impl ERC20Token {
             result => return Err(anyhow!("'decimals' execution failed: {result:?}")),
         };
         Ok(decimals)
-    }
-
-    pub fn amount(&self, amount: U256, db: &mut CacheDB<EthersDB<Provider<Http>>>) -> anyhow::Result<IntegerDecimal> {
-        Ok(IntegerDecimal::new(amount, self.decimals(db).unwrap()))
     }
 
     pub fn symbol(&self, db: &mut CacheDB<EthersDB<Provider<Http>>>) -> anyhow::Result<String> {
