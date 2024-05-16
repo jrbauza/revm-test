@@ -6,6 +6,7 @@ use revm::{
 };
 use alloy_sol_types::{sol, SolCall, SolValue};
 use anyhow::{Ok, anyhow};
+
 pub struct UniswapV2TokenPool {
     address: Address
 }
@@ -97,5 +98,4 @@ impl UniswapV2TokenPool {
         };
         Ok((reserve0, reserve1, timestamp))
     }
-
 }

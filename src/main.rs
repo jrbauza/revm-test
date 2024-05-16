@@ -1,5 +1,6 @@
 mod erc20_token;
 mod uniswap_v2_token_pool;
+mod integer_decimal;
 
 use erc20_token::ERC20Token;
 use uniswap_v2_token_pool::UniswapV2TokenPool;
@@ -9,8 +10,7 @@ use anyhow::Ok;
 use ethers_providers::{Http, Provider};
 use revm::{
     db::{CacheDB, EthersDB},
-    primitives::{address, Address},
-    Database, Evm,
+    primitives::address
 };
 use std::sync::Arc;
 
@@ -37,12 +37,15 @@ async fn main() -> anyhow::Result<()> {
     let token0_reserves = pool.get_reserves(&mut db)?.0;
     let token1_reserves = pool.get_reserves(&mut db)?.1;
 
-    let token0_amount: erc20_token::IntegerDecimal = token0.integer_decimal(token0_reserves, &mut db)?;
-    let token1_amount: erc20_token::IntegerDecimal = token1.integer_decimal(token1_reserves, &mut db)?;
+    let token0_amount = token0.amount(token0_reserves, &mut db)?;
+    let token1_amount = token1.amount(token1_reserves, &mut db)?;
 
-    println!("Token 0 Symbol: {:#?}, Reserves: {:#?},{:#?}", token0.symbol(&mut db)?.to_string(), token0_amount.int_part.to_string(), token0_amount.decimal_part.to_string());
-    println!("Token 1 Symbol: {:#?}, Reserves: {:#?},{:#?}", token1.symbol(&mut db)?.to_string(), token1_amount.int_part.to_string(), token1_amount.decimal_part.to_string());
 
+    println!("Token 0 Symbol: {:#?}, Reserves: {:#?}", token0.symbol(&mut db)?.to_string(), token0_amount.to_string());
+    println!("Token 1 Symbol: {:#?}, Reserves: {:#?}", token1.symbol(&mut db)?.to_string(), token1_amount.to_string());
+
+    println!("Token 0 / Token 1: {:#?}", token0_amount.divide(&token1_amount));
+    println!("Token 1 / Token 0: {:#?}", token1_amount.divide(&token0_amount));
     println!("Reserves: {:#?} | {:#?} | {:#?}", pool.get_reserves(&mut db)?.0.to_string(), pool.get_reserves(&mut db)?.1.to_string(), pool.get_reserves(&mut db)?.2.to_string());
     Ok(())
 }
