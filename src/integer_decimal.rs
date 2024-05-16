@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn test_divide() {
+    fn test_one_divided_by_two() {
         let one_integer = IntegerDecimal {
             number: revm::primitives::U256::from(1),
             decimals: revm::primitives::U256::from(0)
@@ -107,8 +107,18 @@ mod tests {
         };
         let one_divided_by_two = one_integer.divide(&two_integer);
         assert_eq!(one_divided_by_two, 0.5);
-        
+    }
 
+    #[test]
+    fn test_two_divided_by_one() {
+        let one_integer = IntegerDecimal {
+            number: revm::primitives::U256::from(1),
+            decimals: revm::primitives::U256::from(0)
+        };
+        let two_integer = IntegerDecimal {
+            number: revm::primitives::U256::from(2),
+            decimals: revm::primitives::U256::from(0)
+        };
         let two_divided_by_one = two_integer.divide(&one_integer);
         assert_eq!(two_divided_by_one, 2.0);
     }
