@@ -9,13 +9,10 @@ use revm::{
 use alloy_sol_types::{sol, SolCall, SolValue};
 use anyhow::{Ok, anyhow};
 
+use crate::integer_decimal::IntegerDecimal;
+
 pub struct ERC20Token {
     address : Address
-}
-
-pub struct IntegerDecimal {
-    pub int_part: U256,
-    pub decimal_part: U256
 }
 
 impl ERC20Token {
@@ -82,21 +79,8 @@ impl ERC20Token {
         Ok(decimals)
     }
 
-    pub fn integer_decimal(&self, amount: U256, db: &mut CacheDB<EthersDB<Provider<Http>>>) -> anyhow::Result<IntegerDecimal> {
-        let decimals = self.decimals(db).unwrap();
-        let divisor = U256::from(10).pow(decimals);
-        let decimal_part = amount.checked_rem(divisor).unwrap();
-        let int_part = amount.checked_sub(decimal_part).unwrap().checked_div(divisor).unwrap();
-        Ok(IntegerDecimal {
-            int_part,
-            decimal_part
-        })
-    }
-
-    pub fn integer_balance_of(&self, account: Address, db: &mut CacheDB<EthersDB<Provider<Http>>>) -> anyhow::Result<U256> {
-        let balance = self.balance_of(account, db).unwrap();
-        let int_balance = self.integer_decimal(balance, db).unwrap();
-        Ok(int_balance.int_part)
+    pub fn amount(&self, amount: U256, db: &mut CacheDB<EthersDB<Provider<Http>>>) -> anyhow::Result<IntegerDecimal> {
+        Ok(IntegerDecimal::new(amount, self.decimals(db).unwrap()))
     }
 
     pub fn symbol(&self, db: &mut CacheDB<EthersDB<Provider<Http>>>) -> anyhow::Result<String> {
